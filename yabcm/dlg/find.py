@@ -22,7 +22,7 @@ class FindDialog(wx.Dialog):
 
         self.hsizer = wx.BoxSizer()
         self.sizer.Add(self.hsizer)
-        self.choices = [attr for attr in BCMEntry.__attrs__ if attr not in BLACK_LIST]
+        self.choices = [attr for attr in BCMEntry.__fields__ if attr not in BLACK_LIST]
 
         self.entry = wx.Choice(self, -1, choices=self.choices)
 

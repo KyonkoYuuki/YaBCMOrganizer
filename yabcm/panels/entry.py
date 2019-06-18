@@ -198,7 +198,7 @@ class EntryPanel(wx.Panel):
         return wx.SpinCtrlDouble(panel, *args, **kwargs)
 
     def load_entry(self, entry):
-        for name in entry.__attrs__:
+        for name in entry.__fields__:
             self[name].SetValue(entry[name])
         if entry.address == 0:
             self.Disable()
@@ -209,7 +209,7 @@ class EntryPanel(wx.Panel):
     def save_entry(self, _):
         if not self.entry:
             return
-        for name in self.entry.__attrs__:
+        for name in self.entry.__fields__:
             self.entry[name] = self[name].GetValue()
 
     def focus(self, entry):
