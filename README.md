@@ -21,4 +21,5 @@ This tool is here to help out with creating and modifying BCMs. In addition to g
 0.1.3 - Fixed floating point entries not being able to go negative
 0.1.4 - Fixed issue when searching sometimes freezing the program
 0.1.5 - Fixed issue saving
+0.1.6 - Removed conflicting options and shortcuts from main edit menu
 ```

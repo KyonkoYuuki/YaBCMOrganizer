@@ -15,7 +15,7 @@ from yabcm.dlg.find import FindDialog
 from yabcm.dlg.replace import ReplaceDialog
 from pyxenoverse.gui.file_drop_target import FileDropTarget
 
-VERSION = '0.1.5'
+VERSION = '0.1.6'
 
 
 class MainWindow(wx.Frame):
@@ -44,19 +44,6 @@ class MainWindow(wx.Frame):
         edit_menu = wx.Menu()
         edit_menu.Append(wx.ID_FIND)
         edit_menu.Append(wx.ID_REPLACE)
-        edit_menu.AppendSeparator()
-        self.copy = edit_menu.Append(wx.ID_COPY, "&Copy\tCtrl+C", "Copy entry")
-        self.copy.Enable(False)
-        self.paste = edit_menu.Append(wx.ID_PASTE, "&Paste\tCtrl+V", "Paste entry")
-        self.paste.Enable(False)
-        self.delete = edit_menu.Append(wx.ID_DELETE, "&Delete\tDelete", "Delete entry(s)")
-        self.delete.Enable(False)
-        self.append = edit_menu.Append(self.main_panel.append_id, "&Append\tCtrl+A", "Append entry after")
-        self.append.Enable(False)
-        self.insert = edit_menu.Append(self.main_panel.insert_id, "&Insert\tCtrl+I", "Insert entry before")
-        self.insert.Enable(False)
-        self.add_child = edit_menu.Append(wx.ID_ADD, "Add &New Child\tCtrl+N", "Add child entry")
-        self.add_child.Enable(False)
 
         # Creating the menubar.
         menu_bar = wx.MenuBar()
@@ -83,7 +70,6 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.main_panel.on_add_child, id=wx.ID_ADD)
         self.Bind(wx.EVT_MENU, self.main_panel.on_append, id=self.main_panel.append_id)
         self.Bind(wx.EVT_MENU, self.main_panel.on_insert, id=self.main_panel.insert_id)
-        self.Bind(wx.EVT_MENU_OPEN, self.on_menu_open)
         accelerator_table = wx.AcceleratorTable([
             (wx.ACCEL_CTRL, ord('o'), wx.ID_OPEN),
             (wx.ACCEL_CTRL, ord('s'), wx.ID_SAVE),
@@ -143,29 +129,6 @@ class MainWindow(wx.Frame):
         dlg = ScrolledMessageDialog(self, ''.join(traceback.format_exception(etype, value, trace)), "Error")
         dlg.ShowModal()
         dlg.Destroy()
-
-    def on_menu_open(self, e):
-        self.copy.Enable(False)
-        self.paste.Enable(False)
-        self.delete.Enable(False)
-        self.append.Enable(False)
-        self.insert.Enable(False)
-        self.add_child.Enable(False)
-        selection = self.entry_list.GetSelection()
-        if not selection:
-            return
-
-        enabled = selection != self.entry_list.GetFirstItem()
-        self.copy.Enable(enabled)
-        success = False
-        if enabled and wx.TheClipboard.Open():
-            success = wx.TheClipboard.IsSupported(wx.DataFormat("BCMEntry"))
-            wx.TheClipboard.Close()
-        self.paste.Enable(success)
-        self.delete.Enable(enabled)
-        self.append.Enable(enabled)
-        self.insert.Enable(enabled)
-        self.add_child.Enable(True)
 
     def on_about(self, e):
         # Create a message dialog box
