@@ -22,4 +22,5 @@ This tool is here to help out with creating and modifying BCMs. In addition to g
 0.1.4 - Fixed issue when searching sometimes freezing the program
 0.1.5 - Fixed issue saving
 0.1.6 - Removed conflicting options and shortcuts from main edit menu
+0.1.7 - Added ability to drag/associate files to exe to open them
 ```
