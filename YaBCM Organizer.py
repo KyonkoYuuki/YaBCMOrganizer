@@ -149,7 +149,7 @@ class MainWindow(wx.Frame):
     def open_bcm(self, e):
         dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.bcm", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.load_bcm(dlg.GetFilename(), dlg.GetDirectory())
+            self.load_bcm(dlg.GetDirectory(), dlg.GetFilename())
         dlg.Destroy()
 
     def load_bcm(self, dirname, filename):
