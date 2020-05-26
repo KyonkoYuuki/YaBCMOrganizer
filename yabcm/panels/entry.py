@@ -122,12 +122,12 @@ class EntryPanel(wx.Panel):
         # BAC Stuff
         self.bac_entry_primary = self.add_num_entry(bac_panel, 'BAC Entry Primary', True)
         self.bac_entry_charge = self.add_num_entry(bac_panel, 'BAC Entry Charge', True)
-        self.bac_entry_airborne = self.add_num_entry(bac_panel, 'BAC Entry Airborne', True)
+        self.u_24 = self.add_hex_entry(unknown_panel, 'U_24', max=MAX_UINT16)
         self.bac_entry_user_connect = self.add_num_entry(bac_panel, 'BAC Entry\nUser Connect', True)
         self.bac_entry_victim_connect = self.add_num_entry(bac_panel, 'BAC Entry\nVictim Connect', True)
+        self.bac_entry_airborne = self.add_num_entry(bac_panel, 'BAC Entry Airborne', True)
         self.bac_entry_unknown = self.add_num_entry(bac_panel, 'BAC Entry Unknown', True)
         self.random_flag = self.add_hex_entry(bac_panel, 'Random Flag', max=MAX_UINT16)
-        self.u_2e = self.add_hex_entry(unknown_panel, 'U_2E', max=MAX_UINT16)
 
         self.ki_cost = self.add_num_entry(misc_panel, 'Ki Cost', True)
         self.u_44 = self.add_hex_entry(unknown_panel, 'U_44', max=MAX_UINT32)
