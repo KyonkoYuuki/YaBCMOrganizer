@@ -117,17 +117,12 @@ class MainPanel(wx.Panel):
                 entry.child = deleted_entry.child
             temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
 
-    # TODO: can probably delete this
     def get_children(self, item):
-        entry = self.entry_list.GetItemData(item)
-        index = address_to_index(entry.address)
-        parent_address = entry.parent
-        entries = [entry]
-        for entry in self.parent.bcm.entries[index+1:]:
-            if entry.parent == parent_address:
-                break
-            entries.append(entry)
-        return entries
+        self.entry_list.SelectChildren(item)
+        selections = self.entry_list.GetSelections()
+        for child in selections:
+            selections.extend(self.get_children(child))
+        return selections
 
     def select_single_item(self):
         selections = self.entry_list.GetSelections()
@@ -191,11 +186,17 @@ class MainPanel(wx.Panel):
         item = self.select_single_item()
         if not item or item == self.entry_list.GetRootItem():
             return
-        entries = self.get_children(item)
-        if len(entries) > 1:
+        selections = [item]
+        if self.entry_list.GetChildrenCount(item) > 0:
             with wx.MessageDialog(self, 'Copy children entries as well?', '', wx.YES | wx.NO) as dlg:
-                if dlg.ShowModal() != wx.ID_YES:
-                    entries = [entries[0]]
+                if dlg.ShowModal() == wx.ID_YES:
+                    selections.extend(self.get_children(item))
+
+                    # Reselect just the single entry
+                    self.entry_list.UnselectAll()
+                    self.entry_list.SelectItem(item)
+
+        entries = sorted([self.entry_list.GetItemData(item) for item in selections], key=lambda data: data.address)
 
         self.cdo = wx.CustomDataObject("BCMEntry")
         self.cdo.SetData(pickle.dumps(entries))
@@ -218,11 +219,22 @@ class MainPanel(wx.Panel):
         if wx.TheClipboard.Open():
             success = wx.TheClipboard.GetData(cdo)
             wx.TheClipboard.Close()
-        if success:
-            self.entry_list.SetItemData(item, pickle.loads(cdo.GetData())[0])
-            self.reindex()
-            pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
-            pub.sendMessage('set_status_bar', text='Pasted to ' + self.entry_list.GetItemText(item))
+        if not success:
+            return
+
+        paste_data = pickle.loads(cdo.GetData())[0]
+        entry = self.entry_list.GetItemData(item)
+
+        # Keep address/parent/child
+        paste_data.address = entry.address
+        paste_data.parent = entry.parent
+        paste_data.child = entry.child
+        paste_data.sibling = entry.sibling
+
+        self.entry_list.SetItemData(item, paste_data)
+        self.reindex()
+        pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
+        pub.sendMessage('set_status_bar', text='Pasted to ' + self.entry_list.GetItemText(item))
 
     def reindex(self):
         # Set indexes first
