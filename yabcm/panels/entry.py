@@ -1,6 +1,7 @@
 import wx
 from pubsub import pub
 from wx.lib.scrolledpanel import ScrolledPanel
+from pyxenoverse.bcm import address_to_index, index_to_address
 from pyxenoverse.gui import add_entry
 from pyxenoverse.gui.ctrl.dummy_ctrl import DummyCtrl
 from pyxenoverse.gui.ctrl.hex_ctrl import HexCtrl
@@ -28,7 +29,7 @@ class EntryPanel(wx.Panel):
         button_input_panel = Page(self.notebook, 3)
         activator_panel = Page(self.notebook, 5)
         bac_panel = Page(self.notebook, 7)
-        misc_panel = Page(self.notebook, 7)
+        misc_panel = Page(self.notebook, 9)
         unknown_panel = Page(self.notebook, 8)
 
         self.notebook.AddPage(button_input_panel, 'Inputs')
@@ -41,9 +42,9 @@ class EntryPanel(wx.Panel):
         sizer.Add(self.notebook, 1, wx.ALL | wx.EXPAND, 10)
 
         self.address = DummyCtrl()
-        self.sibling = DummyCtrl()
+        self.sibling = self.add_num_entry(misc_panel, 'Sibling Idx')
         self.parent = DummyCtrl()
-        self.child = DummyCtrl()
+        self.child = self.add_num_entry(misc_panel, 'Child Idx')
         self.root = DummyCtrl()
 
         # u_00
@@ -199,7 +200,10 @@ class EntryPanel(wx.Panel):
 
     def load_entry(self, entry):
         for name in entry.__fields__:
-            self[name].SetValue(entry[name])
+            if name == 'child' or name == 'sibling':
+                self[name].SetValue(address_to_index(entry[name]))
+            else:
+                self[name].SetValue(entry[name])
         if entry.address == 0:
             self.Disable()
         else:
@@ -218,6 +222,8 @@ class EntryPanel(wx.Panel):
                 except ValueError:
                     # Keep old value if its mistyped
                     pass
+            elif name == "child" or name == "sibling":
+                self.entry[name] = index_to_address(control.GetValue())
             else:
                 self.entry[name] = control.GetValue()
 

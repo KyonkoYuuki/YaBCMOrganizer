@@ -1,9 +1,7 @@
 import wx
 import pickle
-from wx.dataview import (
-    TreeListCtrl, EVT_TREELIST_SELECTION_CHANGED, EVT_TREELIST_ITEM_CONTEXT_MENU, TLI_FIRST, TLI_LAST
-)
 from pyxenoverse.bcm import address_to_index, index_to_address, BCMEntry
+from pyxenoverse.gui import get_next_item, get_first_item, get_item_index
 from pubsub import pub
 
 
@@ -12,10 +10,9 @@ class MainPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.parent = parent
 
-        self.entry_list = TreeListCtrl(self)
-        self.entry_list.AppendColumn("Entry")
-        self.entry_list.Bind(EVT_TREELIST_ITEM_CONTEXT_MENU, self.on_right_click)
-        self.entry_list.Bind(EVT_TREELIST_SELECTION_CHANGED, self.on_select)
+        self.entry_list = wx.TreeCtrl(self, style=wx.TR_MULTIPLE | wx.TR_HAS_BUTTONS | wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_LINES_AT_ROOT)
+        self.entry_list.Bind(wx.EVT_TREE_ITEM_MENU, self.on_right_click)
+        self.entry_list.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_select)
         self.cdo = wx.CustomDataObject("BCMEntry")
 
         self.append_id = wx.NewId()
@@ -47,8 +44,8 @@ class MainPanel(wx.Panel):
         self.SetAutoLayout(1)
 
     def on_right_click(self, _):
-        selection = self.entry_list.GetSelection()
-        if not selection:
+        selections= self.entry_list.GetSelections()
+        if not selections:
             return
         menu = wx.Menu()
         copy = menu.Append(wx.ID_COPY, "&Copy\tCtrl+C", "Copy entry")
@@ -58,7 +55,7 @@ class MainPanel(wx.Panel):
         insert = menu.Append(self.insert_id, "&Insert\tCtrl+I", "Insert entry before")
         menu.Append(wx.ID_ADD, "Add &New Child\tCtrl+N", "Add child entry")
 
-        enabled = selection != self.entry_list.GetFirstItem()
+        enabled = len(selections) == 1 and selections[0] != self.entry_list.GetRootItem()
         copy.Enable(enabled)
         success = False
         if enabled and wx.TheClipboard.Open():
@@ -72,12 +69,12 @@ class MainPanel(wx.Panel):
         menu.Destroy()
 
     def on_select(self, _):
-        item = self.entry_list.GetSelection()
+        item = self.select_single_item()
         if not item:
             return
         pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
 
-    def add_entry(self, parent, previous):
+    def add_entry(self, parent, index):
         success = False
         cdo = wx.CustomDataObject("BCMEntry")
         if wx.TheClipboard.Open():
@@ -86,17 +83,21 @@ class MainPanel(wx.Panel):
             entries = pickle.loads(cdo.GetData())
         else:
             entries = [BCMEntry(*(35 * [0]))]
-        item = self.entry_list.InsertItem(parent, previous, '', data=entries[0])
+        if index == -1:
+            item = self.entry_list.AppendItem(parent, '', data=entries[0])
+        else:
+            item = self.entry_list.InsertItem(parent, index, '', data=entries[0])
         temp_entry_list = {
             entries[0].address: item
         }
         for entry in entries[1:]:
             temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
-        self.entry_list.Select(item)
+        self.entry_list.SelectItem(item)
         self.reindex()
         self.on_select(None)
         return len(entries)
 
+    # TODO: Redo this
     def readjust_children(self, item):
         deleted_entry = self.entry_list.GetItemData(item)
         index = address_to_index(deleted_entry.address) + 1
@@ -116,6 +117,7 @@ class MainPanel(wx.Panel):
                 entry.child = deleted_entry.child
             temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
 
+    # TODO: can probably delete this
     def get_children(self, item):
         entry = self.entry_list.GetItemData(item)
         index = address_to_index(entry.address)
@@ -127,53 +129,51 @@ class MainPanel(wx.Panel):
             entries.append(entry)
         return entries
 
+    def select_single_item(self):
+        selections = self.entry_list.GetSelections()
+        if len(selections) != 1:
+            return
+        return selections[0]
+
     def on_add_child(self, _):
-        item = self.entry_list.GetSelection()
+        item = self.select_single_item()
         if not item:
             return
-        num_entries = self.add_entry(item, TLI_LAST)
+        num_entries = self.add_entry(item, -1)
         pub.sendMessage(
             'set_status_bar', text=f'Added {num_entries} entry(s) under {self.entry_list.GetItemText(item)}')
 
     def on_append(self, _):
-        item = self.entry_list.GetSelection()
+        item = self.select_single_item()
         if not item:
             return
-        if item == self.entry_list.GetFirstItem():
+        if item == self.entry_list.GetRootItem():
             with wx.MessageDialog(self, "Cannot add entry next to root entry, must be a child", "Warning") as dlg:
                 dlg.ShowModal()
                 return
         parent = self.entry_list.GetItemParent(item)
-        num_entries = self.add_entry(parent, item)
+        index = get_item_index(self.entry_list, item)
+        num_entries = self.add_entry(parent, index + 1)
         pub.sendMessage(
             'set_status_bar', text=f'Added {num_entries} entry(s) after {self.entry_list.GetItemText(item)}')
 
     def on_insert(self, _):
-        item = self.entry_list.GetSelection()
+        item = self.select_single_item()
         if not item:
             return
-        if item == self.entry_list.GetFirstItem():
+        if item == self.entry_list.GetRootItem():
             with wx.MessageDialog(self, "Cannot add entry before root entry.", "Warning") as dlg:
                 dlg.ShowModal()
                 return
         parent = self.entry_list.GetItemParent(item)
-        previous = self.entry_list.GetFirstChild(parent)
-        if previous == item:
-            previous = TLI_FIRST
-        else:
-            while previous.IsOk():
-                if self.entry_list.GetNextSibling(previous) == item:
-                    break
-                previous = self.entry_list.GetNextSibling(previous)
-            if not previous.IsOk():
-                previous = TLI_LAST
-        num_entries = self.add_entry(parent, previous)
+        index = get_item_index(self.entry_list, item)
+        num_entries = self.add_entry(parent, index)
         pub.sendMessage(
             'set_status_bar', text=f'Added {num_entries} entry(s) before {self.entry_list.GetItemText(item)}')
 
     def on_delete(self, _):
-        item = self.entry_list.GetSelection()
-        if not item or item == self.entry_list.GetFirstItem():
+        item = self.select_single_item()
+        if not item or item == self.entry_list.GetRootItem():
             return
         old_num_entries = len(self.parent.bcm.entries)
         if self.entry_list.GetFirstChild(item):
@@ -181,15 +181,15 @@ class MainPanel(wx.Panel):
                 if dlg.ShowModal() != wx.ID_YES:
                     self.readjust_children(item)
 
-        self.entry_list.DeleteItem(item)
+        self.entry_list.Delete(item)
         self.reindex()
         new_num_entries = len(self.parent.bcm.entries)
         pub.sendMessage('disable')
         pub.sendMessage('set_status_bar', text=f'Deleted {old_num_entries - new_num_entries} entries')
 
     def on_copy(self, _):
-        item = self.entry_list.GetSelection()
-        if not item or item == self.entry_list.GetFirstItem():
+        item = self.select_single_item()
+        if not item or item == self.entry_list.GetRootItem():
             return
         entries = self.get_children(item)
         if len(entries) > 1:
@@ -209,8 +209,8 @@ class MainPanel(wx.Panel):
         pub.sendMessage('set_status_bar', text=msg)
 
     def on_paste(self, _):
-        item = self.entry_list.GetSelection()
-        if not item or item == self.entry_list.GetFirstItem():
+        item = self.select_single_item()
+        if not item or item == self.entry_list.GetRootItem():
             return
 
         success = False
@@ -226,34 +226,36 @@ class MainPanel(wx.Panel):
 
     def reindex(self):
         # Set indexes first
-        item = self.entry_list.GetFirstItem()
-        index = 0
+        item, _ = get_first_item(self.entry_list)
+        index = 1
+        mappings = {}
         while item.IsOk():
             entry = self.entry_list.GetItemData(item)
-            entry.address = index_to_address(index)
+            old_address, entry.address = entry.address, index_to_address(index)
+            mappings[old_address] = entry.address
             self.entry_list.SetItemText(item, f'Entry {index}')
-            item = self.entry_list.GetNextItem(item)
+            item = get_next_item(self.entry_list, item)
             index += 1
 
         # Set parent/child/sibling/root
-        first_item = item = self.entry_list.GetFirstItem()
+        item, _ = get_first_item(self.entry_list)
         root = 0
         entries = []
         while item.IsOk():
             entry = self.entry_list.GetItemData(item)
-            sibling = self.entry_list.GetNextSibling(item)
-            child = self.entry_list.GetFirstChild(item)
+            # sibling = self.entry_list.GetNextSibling(item)
+            # child = self.entry_list.GetFirstChild(item)
             parent = self.entry_list.GetItemParent(item)
-            if parent == first_item:
+            if parent == self.entry_list.GetRootItem():
                 root = entry.address
 
-            entry.sibling = self.entry_list.GetItemData(sibling).address if sibling.IsOk() else 0
-            entry.child = self.entry_list.GetItemData(child).address if child.IsOk() else 0
+            entry.sibling = mappings[entry.sibling] if entry.sibling else 0
+            entry.child = mappings[entry.child] if entry.child else 0
             entry.parent = self.entry_list.GetItemData(parent).address if parent != self.entry_list.GetRootItem() else 0
             entry.root = root
 
             entries.append(entry)
-            item = self.entry_list.GetNextItem(item)
+            item = get_next_item(self.entry_list, item)
         self.parent.bcm.entries = entries
 
 

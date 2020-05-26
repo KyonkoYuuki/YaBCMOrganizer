@@ -167,7 +167,7 @@ class MainWindow(wx.Frame):
         # Build Tree
         self.entry_list.DeleteAllItems()
         temp_entry_list = {
-            0: self.entry_list.AppendItem(self.entry_list.GetRootItem(), 'Entry 0', data=self.bcm.entries[0])
+            0: self.entry_list.AddRoot('Entry 0', data=self.bcm.entries[0])
         }
         for entry in sorted(self.bcm.entries[1:], key=lambda x: (x.parent, x.address)):
             temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
