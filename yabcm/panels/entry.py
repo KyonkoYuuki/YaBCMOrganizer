@@ -2,7 +2,7 @@ import wx
 from pubsub import pub
 from wx.lib.scrolledpanel import ScrolledPanel
 from pyxenoverse.bcm import address_to_index, index_to_address
-from pyxenoverse.gui import add_entry
+from pyxenoverse.gui import add_entry, EVT_RESULT, EditThread
 from pyxenoverse.gui.ctrl.dummy_ctrl import DummyCtrl
 from pyxenoverse.gui.ctrl.hex_ctrl import HexCtrl
 from pyxenoverse.gui.ctrl.multiple_selection_box import MultipleSelectionBox
@@ -26,6 +26,7 @@ class EntryPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.entry = None
         self.notebook = wx.Notebook(self)
+        self.edit_thread = None
         button_input_panel = Page(self.notebook, 3)
         activator_panel = Page(self.notebook, 5)
         bac_panel = Page(self.notebook, 7)
@@ -110,7 +111,7 @@ class EntryPanel(wx.Panel):
                 ('Counter and ki amount', ['Counter melee', 'Counter projectile', 'Ki < 100%', 'Ki > 0%'], True),
                 ('Primary activator', ['Transformed', 'Flash on/off unless targeting', None, 'Not Moving'], True),
                 ('Distance and transformation', [None, 'Close', 'Far', 'Base form'], True),
-                ('Position', ['Floating', 'Standing', 'Touching "ground"', 'When attack hits'], True)
+                ('Position', ['Standing', 'Floating', 'Touching "ground"', 'When attack hits'], True)
             ])
 
         # Activator State
@@ -145,9 +146,10 @@ class EntryPanel(wx.Panel):
         self.u_6c = self.add_hex_entry(unknown_panel, 'U_6C', max=MAX_UINT32)
 
         # Binds
-        self.Bind(wx.EVT_TEXT, self.save_entry)
+        self.Bind(wx.EVT_TEXT, self.on_edit)
         self.Bind(wx.EVT_CHECKBOX, self.save_entry)
         self.Bind(wx.EVT_RADIOBOX, self.save_entry)
+        EVT_RESULT(self, self.save_entry)
 
         # Publisher
         pub.subscribe(self.load_entry, 'load_entry')
@@ -198,6 +200,12 @@ class EntryPanel(wx.Panel):
 
         return wx.SpinCtrlDouble(panel, *args, **kwargs)
 
+    def on_edit(self, _):
+        if not self.edit_thread:
+            self.edit_thread = EditThread(self)
+        else:
+            self.edit_thread.new_sig()
+
     def load_entry(self, entry):
         for name in entry.__fields__:
             if name == 'child' or name == 'sibling':
@@ -211,27 +219,33 @@ class EntryPanel(wx.Panel):
         self.entry = entry
 
     def save_entry(self, _):
+        self.edit_thread = None
         if not self.entry:
             return
+        reindex = False
         for name in self.entry.__fields__:
             # SpinCtrlDoubles suck
             control = self[name]
+            old_value = self[name]
             if isinstance(control, wx.SpinCtrlDouble):
                 try:
-                    self.entry[name] = float(control.Children[0].GetValue())
+                    new_value = float(control.Children[0].GetValue())
                 except ValueError:
                     # Keep old value if its mistyped
-                    pass
+                    new_value = old_value
             elif name == "child" or name == "sibling":
-                self.entry[name] = index_to_address(control.GetValue())
+                new_value = index_to_address(control.GetValue())
             else:
-                self.entry[name] = control.GetValue()
+                new_value = control.GetValue()
+            if old_value != new_value:
+                self.entry[name] = new_value
+                if name == "child" or name == "sibling":
+                    reindex = True
+
+        if reindex:
+            pub.sendMessage('reindex')
 
     def focus(self, entry):
         page = self.notebook.FindPage(self[entry].GetParent())
         self.notebook.ChangeSelection(page)
         self[entry].SetFocus()
-
-
-
-
