@@ -171,6 +171,7 @@ class MainWindow(wx.Frame):
         }
         for entry in sorted(self.bcm.entries[1:], key=lambda x: (x.parent, x.address)):
             temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
+        self.entry_list.Expand(temp_entry_list[0])
         self.main_panel.reindex()
         self.main_panel.Layout()
         self.entry_panel.Disable()

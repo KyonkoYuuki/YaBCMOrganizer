@@ -4,6 +4,7 @@ import wx
 
 from pubsub import pub
 from pyxenoverse.bcm import BCMEntry
+from pyxenoverse.gui import get_first_item, get_next_item
 from pyxenoverse.gui.ctrl.hex_ctrl import HexCtrl
 from pyxenoverse.gui.ctrl.single_selection_box import SingleSelectionBox
 from pyxenoverse.gui.ctrl.multiple_selection_box import MultipleSelectionBox
@@ -79,26 +80,34 @@ class FindDialog(wx.Dialog):
         except AttributeError:
             pass
 
+    def select_found(self, item, entry_type):
+        # Select found item
+        self.entry_list.UnselectAll()
+        self.entry_list.SelectItem(item)
+
+        # If not visible, scroll to it
+        if not self.entry_list.IsVisible(item):
+            self.entry_list.ScrollTo(item)
+
+        # Focus on entry
+        pub.sendMessage('focus', entry=entry_type)
+        self.SetFocus()
+        self.status_bar.SetStatusText('')
+
     def find(self, selected, entry_type, find):
         if not selected.IsOk():
             self.status_bar.SetStatusText('No matches found')
             return
-        item = self.entry_list.GetNextItem(selected)
+        item = get_next_item(self.entry_list, selected)
         while item != selected:
             data = self.entry_list.GetItemData(item)
             if data[entry_type] == find:
-                self.entry_list.UnselectAll()
-                self.entry_list.Select(item)
-                pub.sendMessage('on_select', _=None)
-                pub.sendMessage('focus', entry=entry_type)
-                self.SetFocus()
-                self.status_bar.SetStatusText('')
+                self.select_found(item, entry_type)
                 break
 
-            item = self.entry_list.GetNextItem(item)
+            item = get_next_item(self.entry_list, item)
             if not item.IsOk():
-                item = self.entry_list.GetFirstItem()
-                item = self.entry_list.GetNextItem(item)
+                item = get_first_item(self.entry_list)[0]
         else:
             self.status_bar.SetStatusText('No matches found')
 
@@ -114,9 +123,8 @@ class FindDialog(wx.Dialog):
         else:
             find = None
         selected = self.entry_list.GetSelections()
-        if len(selected) == 1 and selected[0] != self.entry_list.GetFirstItem():
+        if len(selected) == 1 and selected[0] != self.entry_list.GetRootItem():
             selected = selected[0]
         else:
-            selected = self.entry_list.GetFirstItem()
-            selected = self.entry_list.GetNextItem(selected)
+            selected = get_first_item(self.entry_list)[0]
         self.find(selected, entry_type, find)

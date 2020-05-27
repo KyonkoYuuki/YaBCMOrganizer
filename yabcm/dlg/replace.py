@@ -1,6 +1,7 @@
 import wx
 from pubsub import pub
 
+from pyxenoverse.gui import get_first_item, get_next_item
 from yabcm.dlg.find import FindDialog
 
 
@@ -57,13 +58,12 @@ class ReplaceDialog(FindDialog):
             self.status_bar.SetStatusText("Invalid Value")
             return None
         count = 0
-        item = self.entry_list.GetFirstItem()
-        item = self.entry_list.GetNextItem(item)
+        item = get_first_item(self.entry_list)[0]
         while item.IsOk():
             data = self.entry_list.GetItemData(item)
             if data[entry_type] == find:
                 data[entry_type] = replace
                 count += 1
-            item = self.entry_list.GetNextItem(item)
+            item = get_next_item(self.entry_list, item)
         pub.sendMessage('on_select', _=None)
         self.status_bar.SetStatusText(f'Replaced {count} entry(s)')

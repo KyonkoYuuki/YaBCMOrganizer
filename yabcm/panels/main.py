@@ -34,6 +34,8 @@ class MainPanel(wx.Panel):
         self.entry_list.SetAcceleratorTable(accelerator_table)
 
         pub.subscribe(self.on_select, 'on_select')
+        pub.subscribe(self.reindex, 'reindex')
+        pub.subscribe(self.reindex, 'expand_parents')
 
         # Use some sizers to see layout options
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -73,6 +75,37 @@ class MainPanel(wx.Panel):
         if not item:
             return
         pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
+
+    def expand_parents(self, item):
+        root = self.entry_list.GetRootItem()
+        parent = self.entry_list.GetItemParent(item)
+        while parent != root:
+            self.entry_list.Expand(parent)
+            parent = self.entry_list.GetItemParent(parent)
+
+    def select_item(self, item):
+        self.entry_list.UnselectAll()
+        self.entry_list.SelectItem(item)
+        self.expand_parents(item)
+        if not self.entry_list.IsVisible(item):
+            self.entry_list.ScrollTo(item)
+
+    def get_selected_root_nodes(self):
+        selected = self.entry_list.GetSelections()
+        if not selected:
+            return []
+        root = self.entry_list.GetRootItem()
+
+        nodes = []
+        for item in selected:
+            parent = self.entry_list.GetItemParent(item)
+            while parent != root and parent.IsOk():
+                if parent in selected:
+                    break
+                parent = self.entry_list.GetItemParent(parent)
+            if parent == root:
+                nodes.append(item)
+        return nodes
 
     def add_entry(self, parent, index):
         success = False
@@ -255,8 +288,9 @@ class MainPanel(wx.Panel):
         entries = []
         while item.IsOk():
             entry = self.entry_list.GetItemData(item)
-            # sibling = self.entry_list.GetNextSibling(item)
-            # child = self.entry_list.GetFirstChild(item)
+            text = self.entry_list.GetItemText(item)
+            sibling = self.entry_list.GetNextSibling(item)
+            child, _ = self.entry_list.GetFirstChild(item)
             parent = self.entry_list.GetItemParent(item)
             if parent == self.entry_list.GetRootItem():
                 root = entry.address
@@ -265,6 +299,15 @@ class MainPanel(wx.Panel):
             entry.child = mappings[entry.child] if entry.child else 0
             entry.parent = self.entry_list.GetItemData(parent).address if parent != self.entry_list.GetRootItem() else 0
             entry.root = root
+
+            sibling_address = self.entry_list.GetItemData(sibling).address if sibling.IsOk() else 0
+            child_address = self.entry_list.GetItemData(child).address if child.IsOk() else 0
+
+            if sibling_address != entry.sibling:
+                text += f", Sibling: {address_to_index(entry.sibling)}"
+            if child_address != entry.child:
+                text += f", Child: {address_to_index(entry.child)}"
+            self.entry_list.SetItemText(item, text)
 
             entries.append(entry)
             item = get_next_item(self.entry_list, item)
