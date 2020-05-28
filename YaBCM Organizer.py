@@ -163,6 +163,7 @@ class MainWindow(wx.Frame):
             dlg.Destroy()
             return
         self.bcm = new_bcm
+        self.entry_panel.bcm = new_bcm
 
         # Build Tree
         self.entry_list.DeleteAllItems()

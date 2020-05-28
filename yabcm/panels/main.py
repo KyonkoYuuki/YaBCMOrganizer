@@ -120,15 +120,49 @@ class MainPanel(wx.Panel):
             item = self.entry_list.AppendItem(parent, '', data=entries[0])
         else:
             item = self.entry_list.InsertItem(parent, index, '', data=entries[0])
+
+        # Get data from parent and surrounding siblings
+        parent_data = self.entry_list.GetItemData(parent)
+        prev_item = self.entry_list.GetPrevSibling(item)
+        prev_data = self.entry_list.GetItemData(prev_item) if prev_item.IsOk() else None
+
+        next_item = self.entry_list.GetNextSibling(item)
+        next_data = self.entry_list.GetItemData(next_item) if next_item.IsOk() else None
+
+        if next_data:
+            entries[0].sibling = next_data.address
+
         temp_entry_list = {
             entries[0].address: item
         }
         for entry in entries[1:]:
             temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
-        self.entry_list.SelectItem(item)
+
         self.reindex()
-        self.on_select(None)
-        return len(entries)
+
+        # If siblings aren't set, set them now
+        update = False
+
+        if parent_data.child == 0:
+            parent_data.child = entries[0].address
+            update = True
+
+        if prev_data and next_data and prev_data.sibling == next_data.address:
+            prev_data.sibling, entries[0].sibling = entries[0].address, next_data.address
+            update = True
+
+        if prev_data and prev_data.sibling == 0:
+            prev_data.sibling = entries[0].address
+            update = True
+
+        if update:
+            self.reindex()
+
+        self.entry_list.UnselectAll()
+        self.entry_list.SelectItem(item)
+        if not self.entry_list.IsVisible(item):
+            self.entry_list.ScrollTo(item)
+        return entries
 
     # TODO: Redo this
     def readjust_children(self, item):
@@ -165,11 +199,15 @@ class MainPanel(wx.Panel):
 
     def on_add_child(self, _):
         item = self.select_single_item()
+        data = self.entry_list.GetItemData(item)
         if not item:
             return
-        num_entries = self.add_entry(item, -1)
+        entries = self.add_entry(item, -1)
+        if data.child == 0:
+            data.child = entries[0].address
+            self.reindex()
         pub.sendMessage(
-            'set_status_bar', text=f'Added {num_entries} entry(s) under {self.entry_list.GetItemText(item)}')
+            'set_status_bar', text=f'Added {len(entries)} entry(s) under {self.entry_list.GetItemText(item)}')
 
     def on_append(self, _):
         item = self.select_single_item()
@@ -181,9 +219,9 @@ class MainPanel(wx.Panel):
                 return
         parent = self.entry_list.GetItemParent(item)
         index = get_item_index(self.entry_list, item)
-        num_entries = self.add_entry(parent, index + 1)
+        entries = self.add_entry(parent, index + 1)
         pub.sendMessage(
-            'set_status_bar', text=f'Added {num_entries} entry(s) after {self.entry_list.GetItemText(item)}')
+            'set_status_bar', text=f'Added {len(entries)} entry(s) after {self.entry_list.GetItemText(item)}')
 
     def on_insert(self, _):
         item = self.select_single_item()
@@ -195,9 +233,9 @@ class MainPanel(wx.Panel):
                 return
         parent = self.entry_list.GetItemParent(item)
         index = get_item_index(self.entry_list, item)
-        num_entries = self.add_entry(parent, index)
+        entries = self.add_entry(parent, index)
         pub.sendMessage(
-            'set_status_bar', text=f'Added {num_entries} entry(s) before {self.entry_list.GetItemText(item)}')
+            'set_status_bar', text=f'Added {len(entries)} entry(s) before {self.entry_list.GetItemText(item)}')
 
     def on_delete(self, _):
         item = self.select_single_item()

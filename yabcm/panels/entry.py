@@ -24,6 +24,7 @@ class Page(ScrolledPanel):
 class EntryPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
+        self.bcm = None
         self.entry = None
         self.notebook = wx.Notebook(self)
         self.edit_thread = None
@@ -234,7 +235,12 @@ class EntryPanel(wx.Panel):
                     # Keep old value if its mistyped
                     new_value = old_value
             elif name == "child" or name == "sibling":
-                new_value = index_to_address(control.GetValue())
+                num_entries = len(self.bcm.entries)
+                new_value = control.GetValue()
+                if new_value >= num_entries:
+                    new_value = num_entries - 1
+                    control.SetValue(new_value)
+                new_value = index_to_address(new_value)
             else:
                 new_value = control.GetValue()
             if old_value != new_value:
