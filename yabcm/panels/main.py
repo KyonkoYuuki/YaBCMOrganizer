@@ -238,8 +238,12 @@ class MainPanel(wx.Panel):
             'set_status_bar', text=f'Added {len(entries)} entry(s) before {self.entry_list.GetItemText(item)}')
 
     def on_delete(self, _):
-        item = self.select_single_item()
-        if not item or item == self.entry_list.GetRootItem():
+        selections = self.entry_list.GetSelections()
+        if not selections:
+            return
+        if self.entry_list.GetRootItem() in selections:
+            with wx.MessageDialog(self, "Cannot delete entry 0", 'Error', wx.OK) as dlg:
+                dlg.ShowModal()
             return
         old_num_entries = len(self.parent.bcm.entries)
         # if self.entry_list.GetFirstChild(item):
@@ -247,7 +251,8 @@ class MainPanel(wx.Panel):
         #         if dlg.ShowModal() != wx.ID_YES:
         #             self.readjust_children(item)
 
-        self.entry_list.Delete(item)
+        for item in selections:
+            self.entry_list.Delete(item)
         self.reindex()
         new_num_entries = len(self.parent.bcm.entries)
         pub.sendMessage('disable')
