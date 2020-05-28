@@ -114,6 +114,14 @@ class MainPanel(wx.Panel):
             success = wx.TheClipboard.GetData(cdo)
         if success:
             entries = pickle.loads(cdo.GetData())
+
+            # Increment addresses so they don't run into existing ones.
+            # Luckily....there is a limit on how big they can be.
+            for entry in entries:
+                entry.address += 0x100000000
+                entry.child += 0x100000000
+                entry.parent += 0x100000000
+                entry.sibling += 0x100000000
         else:
             entries = [BCMEntry(*(35 * [0]))]
         if index == -1:
@@ -158,31 +166,12 @@ class MainPanel(wx.Panel):
         if update:
             self.reindex()
 
+        self.entry_list.Expand(parent)
         self.entry_list.UnselectAll()
         self.entry_list.SelectItem(item)
         if not self.entry_list.IsVisible(item):
             self.entry_list.ScrollTo(item)
         return entries
-
-    # TODO: Redo this
-    def readjust_children(self, item):
-        deleted_entry = self.entry_list.GetItemData(item)
-        index = address_to_index(deleted_entry.address) + 1
-        parent = self.entry_list.GetItemParent(item)
-        parent_address = self.entry_list.GetItemData(parent).address
-        temp_entry_list = {
-            parent_address: parent
-        }
-        for entry in self.parent.bcm.entries[index:]:
-            if entry.parent == parent_address:
-                break
-            if entry.parent == deleted_entry.address:
-                entry.parent = deleted_entry.parent
-            if entry.sibling == deleted_entry.address:
-                entry.sibling = deleted_entry.sibling
-            if entry.child == deleted_entry.address:
-                entry.child = deleted_entry.child
-            temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
 
     def get_children(self, item):
         self.entry_list.SelectChildren(item)
@@ -246,10 +235,6 @@ class MainPanel(wx.Panel):
                 dlg.ShowModal()
             return
         old_num_entries = len(self.parent.bcm.entries)
-        # if self.entry_list.GetFirstChild(item):
-        #     with wx.MessageDialog(self, "Delete child entries as well?", '', wx.YES | wx.NO) as dlg:
-        #         if dlg.ShowModal() != wx.ID_YES:
-        #             self.readjust_children(item)
 
         for item in selections:
             self.entry_list.Delete(item)
@@ -262,11 +247,11 @@ class MainPanel(wx.Panel):
         item = self.select_single_item()
         if not item or item == self.entry_list.GetRootItem():
             return
-        selections = [item]
+        selections = {item}
         if self.entry_list.GetChildrenCount(item) > 0:
             with wx.MessageDialog(self, 'Copy children entries as well?', '', wx.YES | wx.NO) as dlg:
                 if dlg.ShowModal() == wx.ID_YES:
-                    selections.extend(self.get_children(item))
+                    selections.update(self.get_children(item))
 
                     # Reselect just the single entry
                     self.entry_list.UnselectAll()
@@ -312,7 +297,7 @@ class MainPanel(wx.Panel):
         pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
         pub.sendMessage('set_status_bar', text='Pasted to ' + self.entry_list.GetItemText(item))
 
-    def reindex(self, reset=False):
+    def reindex(self):
         # Set indexes first
         item, _ = get_first_item(self.entry_list)
         index = 1
