@@ -242,10 +242,10 @@ class MainPanel(wx.Panel):
         if not item or item == self.entry_list.GetRootItem():
             return
         old_num_entries = len(self.parent.bcm.entries)
-        if self.entry_list.GetFirstChild(item):
-            with wx.MessageDialog(self, "Delete child entries as well?", '', wx.YES | wx.NO) as dlg:
-                if dlg.ShowModal() != wx.ID_YES:
-                    self.readjust_children(item)
+        # if self.entry_list.GetFirstChild(item):
+        #     with wx.MessageDialog(self, "Delete child entries as well?", '', wx.YES | wx.NO) as dlg:
+        #         if dlg.ShowModal() != wx.ID_YES:
+        #             self.readjust_children(item)
 
         self.entry_list.Delete(item)
         self.reindex()
@@ -307,7 +307,7 @@ class MainPanel(wx.Panel):
         pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
         pub.sendMessage('set_status_bar', text='Pasted to ' + self.entry_list.GetItemText(item))
 
-    def reindex(self):
+    def reindex(self, reset=False):
         # Set indexes first
         item, _ = get_first_item(self.entry_list)
         index = 1
@@ -330,16 +330,27 @@ class MainPanel(wx.Panel):
             sibling = self.entry_list.GetNextSibling(item)
             child, _ = self.entry_list.GetFirstChild(item)
             parent = self.entry_list.GetItemParent(item)
-            if parent == self.entry_list.GetRootItem():
-                root = entry.address
-
-            entry.sibling = mappings[entry.sibling] if entry.sibling else 0
-            entry.child = mappings[entry.child] if entry.child else 0
-            entry.parent = self.entry_list.GetItemData(parent).address if parent != self.entry_list.GetRootItem() else 0
-            entry.root = root
 
             sibling_address = self.entry_list.GetItemData(sibling).address if sibling.IsOk() else 0
             child_address = self.entry_list.GetItemData(child).address if child.IsOk() else 0
+
+            # Root will always be one of the immediate childs to Entry 0
+            if parent == self.entry_list.GetRootItem():
+                root = entry.address
+
+            # If the mapping for the sibling/child has been deleted, reset it
+            if entry.sibling:
+                entry.sibling = mappings.get(entry.sibling, 0)
+                if not entry.sibling:
+                    entry.sibling = sibling_address
+
+            if entry.child:
+                entry.child = mappings.get(entry.child, 0)
+                if not entry.child:
+                    entry.child = child_address
+
+            entry.parent = self.entry_list.GetItemData(parent).address if parent != self.entry_list.GetRootItem() else 0
+            entry.root = root
 
             if sibling_address != entry.sibling:
                 text += f", Sibling: {address_to_index(entry.sibling)}"
