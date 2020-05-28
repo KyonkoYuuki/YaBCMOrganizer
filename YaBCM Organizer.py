@@ -15,7 +15,7 @@ from yabcm.dlg.find import FindDialog
 from yabcm.dlg.replace import ReplaceDialog
 from pyxenoverse.gui.file_drop_target import FileDropTarget
 
-VERSION = '0.1.8'
+VERSION = '0.2.0'
 
 
 class MainWindow(wx.Frame):

@@ -174,10 +174,14 @@ class EntryPanel(wx.Panel):
 
     @add_entry
     def add_hex_entry(self, parent, _, *args, **kwargs):
+        if 'size' not in kwargs:
+            kwargs['size'] = (150, -1)
         return HexCtrl(parent, *args, **kwargs)
 
     @add_entry
     def add_num_entry(self, panel, _, unsigned=False, *args, **kwargs):
+        if 'size' not in kwargs:
+            kwargs['size'] = (150, -1)
         if unsigned:
             kwargs['min'], kwargs['max'] = 0, 65535
         else:
@@ -194,6 +198,8 @@ class EntryPanel(wx.Panel):
 
     @add_entry
     def add_float_entry(self, panel, _, *args, **kwargs):
+        if 'size' not in kwargs:
+            kwargs['size'] = (150, -1)
         if 'min' not in kwargs:
             kwargs['min'] = -3.402823466e38
         if 'max' not in kwargs:

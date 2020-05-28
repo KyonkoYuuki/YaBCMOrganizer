@@ -10,7 +10,7 @@ class MainPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         self.parent = parent
 
-        self.entry_list = wx.TreeCtrl(self, style=wx.TR_MULTIPLE | wx.TR_HAS_BUTTONS | wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_LINES_AT_ROOT)
+        self.entry_list = wx.TreeCtrl(self, style=wx.TR_MULTIPLE | wx.TR_HAS_BUTTONS | wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_LINES_AT_ROOT | wx.TR_TWIST_BUTTONS)
         self.entry_list.Bind(wx.EVT_TREE_ITEM_MENU, self.on_right_click)
         self.entry_list.Bind(wx.EVT_TREE_SEL_CHANGED, self.on_select)
         self.cdo = wx.CustomDataObject("BCMEntry")
@@ -71,7 +71,7 @@ class MainPanel(wx.Panel):
         menu.Destroy()
 
     def on_select(self, _):
-        item = self.select_single_item()
+        item = self.select_single_item(show_error=False)
         if not item:
             return
         pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
@@ -180,10 +180,14 @@ class MainPanel(wx.Panel):
             selections.extend(self.get_children(child))
         return selections
 
-    def select_single_item(self):
+    def select_single_item(self, show_error=True):
         selections = self.entry_list.GetSelections()
         if len(selections) != 1:
+            if show_error and len(selections) > 1:
+                with wx.MessageDialog(self, "Can only select one entry for this function", "Error") as dlg:
+                    dlg.ShowModal()
             return
+
         return selections[0]
 
     def on_add_child(self, _):
@@ -205,7 +209,7 @@ class MainPanel(wx.Panel):
         if item == self.entry_list.GetRootItem():
             with wx.MessageDialog(self, "Cannot add entry next to root entry, must be a child", "Warning") as dlg:
                 dlg.ShowModal()
-                return
+            return
         parent = self.entry_list.GetItemParent(item)
         index = get_item_index(self.entry_list, item)
         entries = self.add_entry(parent, index + 1)
