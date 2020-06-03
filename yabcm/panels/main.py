@@ -173,12 +173,20 @@ class MainPanel(wx.Panel):
             self.entry_list.ScrollTo(item)
         return entries
 
-    def get_children(self, item):
-        self.entry_list.SelectChildren(item)
-        selections = self.entry_list.GetSelections()
-        for child in selections:
-            selections.extend(self.get_children(child))
-        return selections
+    def get_children(self, entry):
+        parents = [self.entry_list.GetItemData(entry).address]
+        children = []
+
+        item = get_next_item(self.entry_list, entry)
+        while item.IsOk():
+            data = self.entry_list.GetItemData(item)
+            if data.parent not in parents:
+                break
+            parents.append(data.address)
+            children.append(item)
+            item = get_next_item(self.entry_list, item)
+
+        return children
 
     def select_single_item(self, show_error=True):
         selections = self.entry_list.GetSelections()
@@ -251,15 +259,11 @@ class MainPanel(wx.Panel):
         item = self.select_single_item()
         if not item or item == self.entry_list.GetRootItem():
             return
-        selections = {item}
+        selections = [item]
         if self.entry_list.GetChildrenCount(item) > 0:
             with wx.MessageDialog(self, 'Copy children entries as well?', '', wx.YES | wx.NO) as dlg:
                 if dlg.ShowModal() == wx.ID_YES:
-                    selections.update(self.get_children(item))
-
-                    # Reselect just the single entry
-                    self.entry_list.UnselectAll()
-                    self.entry_list.SelectItem(item)
+                    selections.extend(self.get_children(item))
 
         entries = sorted([self.entry_list.GetItemData(item) for item in selections], key=lambda data: data.address)
 
@@ -317,7 +321,7 @@ class MainPanel(wx.Panel):
         # Set parent/child/sibling/root
         item, _ = get_first_item(self.entry_list)
         root = 0
-        entries = []
+        entries = [self.entry_list.GetItemData(self.entry_list.GetRootItem())]
         while item.IsOk():
             entry = self.entry_list.GetItemData(item)
             text = self.entry_list.GetItemText(item)
