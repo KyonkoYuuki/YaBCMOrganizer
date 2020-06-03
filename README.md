@@ -27,4 +27,5 @@ This tool is here to help out with creating and modifying BCMs. In addition to g
 0.2.0 - Added child/sibling links to misc panel, changed backend treectrl for displaying tree,
         allow limited multi select for deleting multiple entries, removed prompt asking to keep children when deleting.
 0.2.1 - Fixed bug where entry0 wasn't added when saving.  Improved performance on copying large entries.
+0.2.2 - Add automatic backup creation on saving
 ```

@@ -9,13 +9,14 @@ from wx.lib.dialogs import ScrolledMessageDialog
 from wx.lib.agw.hyperlink import HyperLinkCtrl
 
 from pyxenoverse.bcm import BCM
+from pyxenoverse.gui import create_backup
 from yabcm.panels.main import MainPanel
 from yabcm.panels.entry import EntryPanel
 from yabcm.dlg.find import FindDialog
 from yabcm.dlg.replace import ReplaceDialog
 from pyxenoverse.gui.file_drop_target import FileDropTarget
 
-VERSION = '0.2.1'
+VERSION = '0.2.2'
 
 
 class MainWindow(wx.Frame):
@@ -190,6 +191,7 @@ class MainWindow(wx.Frame):
             filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
             self.statusbar.SetStatusText("Saving...")
+            create_backup(self.dirname, filename)
             path = os.path.join(self.dirname, filename)
             self.main_panel.reindex()
             self.bcm.save(path)
