@@ -44,9 +44,9 @@ class EntryPanel(wx.Panel):
         sizer.Add(self.notebook, 1, wx.ALL | wx.EXPAND, 10)
 
         self.address = DummyCtrl()
-        self.sibling = self.add_num_entry(misc_panel, 'Sibling Idx')
+        self.sibling = self.add_num_entry(misc_panel, 'Sibling Idx', min=0, max=0x7FFFFFFF)
         self.parent = DummyCtrl()
-        self.child = self.add_num_entry(misc_panel, 'Child Idx')
+        self.child = self.add_num_entry(misc_panel, 'Child Idx', min=0, max=0x7FFFFFFF)
         self.root = DummyCtrl()
 
         # u_00
@@ -183,9 +183,9 @@ class EntryPanel(wx.Panel):
         if 'size' not in kwargs:
             kwargs['size'] = (150, -1)
         if unsigned:
-            kwargs['min'], kwargs['max'] = 0, 65535
+            kwargs['min'], kwargs['max'] = kwargs.get('min', 0), kwargs.get('max', 65535)
         else:
-            kwargs['min'], kwargs['max'] = -32768, 32767
+            kwargs['min'], kwargs['max'] = kwargs.get('min', -32768), kwargs.get('max', 32767)
         return wx.SpinCtrl(panel, *args, **kwargs)
 
     @add_entry
@@ -229,11 +229,11 @@ class EntryPanel(wx.Panel):
         self.edit_thread = None
         if not self.entry:
             return
-        reindex = False
+        relabel = False
         for name in self.entry.__fields__:
             # SpinCtrlDoubles suck
             control = self[name]
-            old_value = self[name]
+            old_value = self.entry[name]
             if isinstance(control, wx.SpinCtrlDouble):
                 try:
                     new_value = float(control.Children[0].GetValue())
@@ -252,10 +252,10 @@ class EntryPanel(wx.Panel):
             if old_value != new_value:
                 self.entry[name] = new_value
                 if name == "child" or name == "sibling":
-                    reindex = True
+                    relabel = True
 
-        if reindex:
-            pub.sendMessage('reindex')
+        if relabel:
+            pub.sendMessage('relabel', index=address_to_index(self.entry.address))
 
     def focus(self, entry):
         page = self.notebook.FindPage(self[entry].GetParent())

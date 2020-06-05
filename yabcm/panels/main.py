@@ -35,7 +35,7 @@ class MainPanel(wx.Panel):
 
         pub.subscribe(self.on_select, 'on_select')
         pub.subscribe(self.reindex, 'reindex')
-        pub.subscribe(self.reindex, 'expand_parents')
+        pub.subscribe(self.relabel, 'relabel')
 
         # Use some sizers to see layout options
         sizer = wx.BoxSizer(wx.VERTICAL)
@@ -305,6 +305,24 @@ class MainPanel(wx.Panel):
         pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
         pub.sendMessage('set_status_bar', text='Pasted to ' + self.entry_list.GetItemText(item))
 
+    def relabel(self, index):
+        item = self.entry_list.GetRootItem()
+
+        for _ in range(index):
+            item = get_next_item(self.entry_list, item)
+
+        entry = self.entry_list.GetItemData(item)
+        sibling = self.entry_list.GetNextSibling(item)
+        child, _ = self.entry_list.GetFirstChild(item)
+        sibling_address = self.entry_list.GetItemData(sibling).address if sibling.IsOk() else 0
+        child_address = self.entry_list.GetItemData(child).address if child.IsOk() else 0
+        text = f'Entry {index}'
+        if sibling_address != entry.sibling:
+            text += f", Sibling: {address_to_index(entry.sibling)}"
+        if child_address != entry.child:
+            text += f", Child: {address_to_index(entry.child)}"
+        self.entry_list.SetItemText(item, text)
+
     def reindex(self):
         # Set indexes first
         item, _ = get_first_item(self.entry_list)
@@ -359,6 +377,3 @@ class MainPanel(wx.Panel):
             entries.append(entry)
             item = get_next_item(self.entry_list, item)
         self.parent.bcm.entries = entries
-
-
-

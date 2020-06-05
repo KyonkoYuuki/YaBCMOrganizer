@@ -28,4 +28,5 @@ This tool is here to help out with creating and modifying BCMs. In addition to g
         allow limited multi select for deleting multiple entries, removed prompt asking to keep children when deleting.
 0.2.1 - Fixed bug where entry0 wasn't added when saving.  Improved performance on copying large entries.
 0.2.2 - Add automatic backup creation on saving
+0.2.3 - Improved editing performance with very large BCM's, fixed child/sibling indexes cutting off at 32767
 ```
