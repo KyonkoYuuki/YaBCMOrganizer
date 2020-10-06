@@ -106,8 +106,8 @@ class EntryPanel(wx.Panel):
             activator_panel, 'Primary Activator\nConditions', cols=3, orient=wx.VERTICAL, choices=[
                 ('Health', ["User's Health (One Use)", "Target's health < 25%",
                             "User's Health(?)", "User's Health"], True),
-                ('Collision/stamina', [None, 'Stamina > 0%', 'Not near map ceiling', 'Not near certain objects'], True),
-                ('Targeting', [None, None, 'Targeting Opponent'], True),
+                ('Collision/stamina', ["Active Projectile", 'Stamina > 0%', 'Not near map ceiling', 'Not near certain objects'], True),
+                ('Targeting', ["Opponent Knockback", None, 'Targeting Opponent'], True),
                 ('Touching', [None, None, 'Ground', 'Opponent'], True),
                 ('Counter and ki amount', ['Counter melee', 'Counter projectile', 'Ki < 100%', 'Ki > 0%'], True),
                 ('Primary activator', ['Transformed', 'Flash on/off unless targeting', None, 'Not Moving'], True),
