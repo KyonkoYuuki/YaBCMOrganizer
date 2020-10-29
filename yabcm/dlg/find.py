@@ -101,7 +101,8 @@ class FindDialog(wx.Dialog):
         item = get_next_item(self.entry_list, selected)
         while item != selected:
             data = self.entry_list.GetItemData(item)
-            if data[entry_type] == find:
+            if find is None or data[entry_type] == find or (
+                    isinstance(data[entry_type], float) and abs(data[entry_type] - find) < 0.000001):
                 self.select_found(item, entry_type)
                 break
 
@@ -113,18 +114,21 @@ class FindDialog(wx.Dialog):
 
     def on_find(self, _):
         entry_type = self.choices[self.entry.GetSelection()]
-        value = self.find_ctrl.GetValue()
-        if value:
-            try:
-                find = int(value, 0)
-            except ValueError:
-                self.status_bar.SetStatusText("Invalid Value")
-                return
-        else:
-            find = None
+        value = None
+        try:
+            value = self.get_value(self.find_ctrl)
+        except ValueError:
+            self.status_bar.SetStatusText("Invalid Value")
         selected = self.entry_list.GetSelections()
         if len(selected) == 1 and selected[0] != self.entry_list.GetRootItem():
             selected = selected[0]
         else:
             selected = get_first_item(self.entry_list)[0]
-        self.find(selected, entry_type, find)
+        self.find(selected, entry_type, value)
+
+    @staticmethod
+    def get_value(ctrl):
+        value = ctrl.GetValue()
+        if value.startswith('0x'):
+            return int(value, 16)
+        return float(value)
