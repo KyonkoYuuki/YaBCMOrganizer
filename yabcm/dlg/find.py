@@ -128,7 +128,12 @@ class FindDialog(wx.Dialog):
 
     @staticmethod
     def get_value(ctrl):
+        #old logic caused EVERY value that was not hexadecimal to be converted to float type
+        #that causes struct.pack exception when writing and corrupts the file
         value = ctrl.GetValue()
         if value.startswith('0x'):
             return int(value, 16)
-        return float(value)
+        try:
+            return int(value,10)
+        except ValueError:
+            return float(value)
