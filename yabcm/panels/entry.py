@@ -77,6 +77,7 @@ class EntryPanel(wx.Panel):
                 ('Charge Type', {
                     'Automatic': 0x0,
                     'Manual': 0x1,
+                    'Unknown (0x2)': 0x2,
                 }, False),
                 (None, None, False),
                 (None, None, False),
