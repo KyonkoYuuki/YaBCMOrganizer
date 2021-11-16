@@ -31,4 +31,6 @@ This tool is here to help out with creating and modifying BCMs. In addition to g
 0.2.3 - Improved editing performance with very large BCM's, fixed child/sibling indexes cutting off at 32767
 0.2.4 - Added primary activator conditions
 0.2.5 - Fixed find/replace dialogs so it works with int/hex/float
+0.2.6 - Added new flag selections in unknown and BAC tabs
+        fixed names on Primary Activator Conditions 
 ```
