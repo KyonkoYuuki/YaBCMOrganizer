@@ -16,7 +16,7 @@ from yabcm.dlg.find import FindDialog
 from yabcm.dlg.replace import ReplaceDialog
 from pyxenoverse.gui.file_drop_target import FileDropTarget
 
-VERSION = '0.2.5 - Unleashed Edits v1.1'
+VERSION = '0.2.6'
 
 
 class MainWindow(wx.Frame):
