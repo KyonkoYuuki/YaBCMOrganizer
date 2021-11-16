@@ -14,7 +14,7 @@ LABEL_STYLE = wx.ALIGN_CENTER_VERTICAL | wx.ALL
 
 
 class Page(ScrolledPanel):
-    def __init__(self, parent, rows):
+    def __init__(self, parent, rows=32):
         ScrolledPanel.__init__(self, parent)
         self.sizer = wx.FlexGridSizer(rows=rows, cols=2, hgap=5, vgap=5)
         self.SetSizer(self.sizer)
@@ -28,11 +28,11 @@ class EntryPanel(wx.Panel):
         self.entry = None
         self.notebook = wx.Notebook(self)
         self.edit_thread = None
-        button_input_panel = Page(self.notebook, 3)
-        activator_panel = Page(self.notebook, 5)
-        bac_panel = Page(self.notebook, 7)
-        misc_panel = Page(self.notebook, 9)
-        unknown_panel = Page(self.notebook, 8)
+        button_input_panel = Page(self.notebook)
+        activator_panel = Page(self.notebook)
+        bac_panel = Page(self.notebook)
+        misc_panel = Page(self.notebook)
+        unknown_panel = Page(self.notebook)
 
         self.notebook.AddPage(button_input_panel, 'Inputs')
         self.notebook.AddPage(activator_panel, 'Activator')
@@ -77,6 +77,7 @@ class EntryPanel(wx.Panel):
                 ('Charge Type', {
                     'Automatic': 0x0,
                     'Manual': 0x1,
+                    'Unknown (0x2)': 0x2,
                 }, False),
                 (None, None, False),
                 (None, None, False),
@@ -105,7 +106,7 @@ class EntryPanel(wx.Panel):
         self.primary_activator_conditions = self.add_multiple_selection_entry(
             activator_panel, 'Primary Activator\nConditions', cols=3, orient=wx.VERTICAL, choices=[
                 ('Health', ["User's Health (One Use)", "Target's health < 25%",
-                            "User's Health(?)", "User's Health"], True),
+                            "When own attack hits", "User's Health"], True),
                 ('Collision/stamina', ["Active Projectile", 'Stamina > 0%', 'Not near map ceiling', 'Not near certain objects'], True),
                 ('Targeting', ["Opponent Knockback", None, 'Targeting Opponent'], True),
                 ('Touching', [None, None, 'Ground', 'Opponent'], True),
@@ -129,8 +130,17 @@ class EntryPanel(wx.Panel):
         self.bac_entry_user_connect = self.add_num_entry(bac_panel, 'BAC Entry\nUser Connect', True)
         self.bac_entry_victim_connect = self.add_num_entry(bac_panel, 'BAC Entry\nVictim Connect', True)
         self.bac_entry_airborne = self.add_num_entry(bac_panel, 'BAC Entry Airborne', True)
-        self.bac_entry_unknown = self.add_num_entry(bac_panel, 'BAC Entry Unknown', True)
-        self.random_flag = self.add_hex_entry(bac_panel, 'Random Flag', max=MAX_UINT16)
+        self.bac_entry_unknown = self.add_num_entry(bac_panel, 'BAC Entry Targetting Override', True)
+        self.random_flag = self.add_multiple_selection_entry(bac_panel, 'Unknown BAC Flags', majorDimension=2, choices=[
+            ('', {
+                'None': 0x0,
+                'Random BAC Entry': 0x1,
+                'Unknown (0x2)': 0x2,
+                '3 Instance Setup': 0x3,
+                'Unknown (0x4)': 0x4,
+                'Unknown (0x5)': 0x6,
+            }, False)
+        ])
 
         self.ki_cost = self.add_num_entry(misc_panel, 'Ki Cost', True)
         self.u_44 = self.add_hex_entry(unknown_panel, 'U_44', max=MAX_UINT32)
@@ -143,7 +153,18 @@ class EntryPanel(wx.Panel):
         self.health_required = self.add_float_entry(misc_panel, 'Health Required')
         self.trans_stage = self.add_num_entry(misc_panel, 'Transformation\nStage')
         self.cus_aura = self.add_num_entry(misc_panel, 'CUS_AURA')
-        self.u_68 = self.add_hex_entry(unknown_panel, 'U_68', max=MAX_UINT32)
+        self.u_68  = self.add_multiple_selection_entry(unknown_panel, 'Unknown Flags',  majorDimension=2,  choices=[
+            ('', {
+                'None': 0x0,
+                'Use Skill Upgrades': 0x1,
+                'Unknown (0x2)': 0x2,
+                'Unknown (0x4)': 0x4,
+                'Opponent Reached Ground?': 0x6,
+                'Unknown (0x8)': 0x8,
+            }, False)
+        ])
+
+        self.u_6a = self.add_hex_entry(unknown_panel, 'U_6A', max=MAX_UINT16)
         self.u_6c = self.add_hex_entry(unknown_panel, 'U_6C', max=MAX_UINT32)
 
         # Binds
