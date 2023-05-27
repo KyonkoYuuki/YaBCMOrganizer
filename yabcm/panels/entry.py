@@ -151,7 +151,7 @@ class EntryPanel(wx.Panel):
             ('', {
                 'None': 0x0,
                 'Random BAC Entry': 0x1,
-                'Unknown (0x2)': 0x2,
+                'No Target Correction': 0x2,
                 '3 Instance Setup': 0x3,
                 'Unknown (0x4)': 0x4,
                 'Unknown (0x5)': 0x6,
@@ -298,3 +298,5 @@ class EntryPanel(wx.Panel):
         page = self.notebook.FindPage(self[entry].GetParent())
         self.notebook.ChangeSelection(page)
         self[entry].SetFocus()
+
+

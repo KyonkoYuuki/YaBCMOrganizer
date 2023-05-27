@@ -16,7 +16,7 @@ from yabcm.dlg.find import FindDialog
 from yabcm.dlg.replace import ReplaceDialog
 from pyxenoverse.gui.file_drop_target import FileDropTarget
 
-VERSION = '0.2.7'
+VERSION = '0.2.9'
 
 
 class MainWindow(wx.Frame):
@@ -164,7 +164,8 @@ class MainWindow(wx.Frame):
             dlg.Destroy()
             return
         self.bcm = new_bcm
-
+        self.main_panel.bcm = new_bcm
+        self.bcm.loadComment(path)
         # Build Tree
         self.entry_list.DeleteAllItems()
         temp_entry_list = {
@@ -173,9 +174,11 @@ class MainWindow(wx.Frame):
         for entry in sorted(self.bcm.entries[1:], key=lambda x: (x.parent, x.address)):
             temp_entry_list[entry.address] = self.entry_list.AppendItem(temp_entry_list[entry.parent], '', data=entry)
         self.entry_list.Expand(temp_entry_list[0])
+
         self.main_panel.reindex()
         self.main_panel.Layout()
         self.entry_panel.Disable()
+
         self.name.SetLabel(filename)
         self.statusbar.SetStatusText(f"Loaded {path}")
 
@@ -195,6 +198,7 @@ class MainWindow(wx.Frame):
             path = os.path.join(self.dirname, filename)
             self.main_panel.reindex()
             self.bcm.save(path)
+            self.bcm.saveComment(path)
             self.statusbar.SetStatusText(f"Saved {path}")
             saved = wx.MessageDialog(self, f"Saved to {path} successfully", "BCM Saved")
             saved.ShowModal()
