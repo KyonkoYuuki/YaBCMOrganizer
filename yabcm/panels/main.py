@@ -4,11 +4,14 @@ from pyxenoverse.bcm import address_to_index, index_to_address, BCMEntry
 from pyxenoverse.gui import get_next_item, get_first_item, get_item_index
 from pubsub import pub
 
+from yabcm.dlg.comment import CommentDialog
+
 
 class MainPanel(wx.Panel):
     def __init__(self, parent):
         wx.Panel.__init__(self, parent)
         self.parent = parent
+        self.bcm = None
 
         self.entry_list = wx.TreeCtrl(self, style=wx.TR_MULTIPLE | wx.TR_HAS_BUTTONS | wx.TR_FULL_ROW_HIGHLIGHT | wx.TR_LINES_AT_ROOT | wx.TR_TWIST_BUTTONS)
         self.entry_list.Bind(wx.EVT_TREE_ITEM_MENU, self.on_right_click)
@@ -17,18 +20,21 @@ class MainPanel(wx.Panel):
 
         self.append_id = wx.NewId()
         self.insert_id = wx.NewId()
+        self.comment_id = wx.NewId()
         self.Bind(wx.EVT_MENU, self.on_delete, id=wx.ID_DELETE)
         self.Bind(wx.EVT_MENU, self.on_copy, id=wx.ID_COPY)
         self.Bind(wx.EVT_MENU, self.on_paste, id=wx.ID_PASTE)
         self.Bind(wx.EVT_MENU, self.on_add_child, id=wx.ID_ADD)
         self.Bind(wx.EVT_MENU, self.on_append, id=self.append_id)
         self.Bind(wx.EVT_MENU, self.on_insert, id=self.insert_id)
+        self.Bind(wx.EVT_MENU, self.on_comment, id=self.comment_id)
         accelerator_table = wx.AcceleratorTable([
             (wx.ACCEL_CTRL, ord('a'), self.append_id),
             (wx.ACCEL_CTRL, ord('i'), self.insert_id),
             (wx.ACCEL_CTRL, ord('n'), wx.ID_ADD),
             (wx.ACCEL_CTRL, ord('c'), wx.ID_COPY),
             (wx.ACCEL_CTRL, ord('v'), wx.ID_PASTE),
+            (wx.ACCEL_CTRL, ord('q'), self.comment_id),
             (wx.ACCEL_NORMAL, wx.WXK_DELETE, wx.ID_DELETE),
         ])
         self.entry_list.SetAcceleratorTable(accelerator_table)
@@ -63,6 +69,19 @@ class MainPanel(wx.Panel):
         if enabled and wx.TheClipboard.Open():
             success = wx.TheClipboard.IsSupported(wx.DataFormat("BCMEntry"))
             wx.TheClipboard.Close()
+
+        #comment stuff
+        comment = menu.Append(self.comment_id, "Add Comment\tCtrl+Q", "Add Comment")
+
+
+        for sel in self.entry_list.GetSelections():
+            entry = self.entry_list.GetItemData(sel)
+            entry_class_name = entry.__class__.__name__
+
+            if entry.get_name() != "Entry":
+                comment.Enable(False)
+                break
+
         paste.Enable(success)
         delete.Enable(enabled)
         append.Enable(enabled)
@@ -75,6 +94,9 @@ class MainPanel(wx.Panel):
         if not item:
             return
         pub.sendMessage('load_entry', entry=self.entry_list.GetItemData(item))
+
+    def update_entry(self, item, entry):
+        self.entry_list.SetItemText(item, f'{entry.index}: Entry (0x{entry.flags:X}){entry.getDisplayComment()}')
 
     def expand_parents(self, item):
         root = self.entry_list.GetRootItem()
@@ -234,7 +256,10 @@ class MainPanel(wx.Panel):
                 return
         parent = self.entry_list.GetItemParent(item)
         index = get_item_index(self.entry_list, item)
+        insert_at_first = True
         entries = self.add_entry(parent, index)
+        self.reindex(insert_at_first=insert_at_first)
+        print("after reindex")
         pub.sendMessage(
             'set_status_bar', text=f'Added {len(entries)} entry(s) before {self.entry_list.GetItemText(item)}')
 
@@ -254,6 +279,27 @@ class MainPanel(wx.Panel):
         new_num_entries = len(self.parent.bcm.entries)
         pub.sendMessage('disable')
         pub.sendMessage('set_status_bar', text=f'Deleted {old_num_entries - new_num_entries} entries')
+
+    def on_comment(self, _):
+        selected = self.entry_list.GetSelections()
+        entry = self.entry_list.GetItemData(selected[0])
+
+        comment_val = ""
+        with CommentDialog(self, "Comment", entry.getComment(), -1) as dlg:
+            if dlg.ShowModal() != wx.ID_OK:
+                return
+            comment_val = dlg.GetValue()
+
+        for sel in selected:
+            entry = self.entry_list.GetItemData(sel)
+            entry.setComment(comment_val)
+
+        # update later to avoid offsetting twice
+
+        self.relabel(index=address_to_index(entry.address))
+
+        self.bcm.has_comments = True
+        pub.sendMessage('set_status_bar', text=f'Comment Added')
 
     def on_copy(self, _):
         item = self.select_single_item()
@@ -321,9 +367,10 @@ class MainPanel(wx.Panel):
             text += f", Sibling: {address_to_index(entry.sibling)}"
         if child_address != entry.child:
             text += f", Child: {address_to_index(entry.child)}"
+        text += f"{entry.getDisplayComment()}"
         self.entry_list.SetItemText(item, text)
 
-    def reindex(self):
+    def reindex(self, insert_at_first=False):
         # Set indexes first
         item, _ = get_first_item(self.entry_list)
         index = 1
@@ -355,6 +402,7 @@ class MainPanel(wx.Panel):
                 root = entry.address
 
             # If the mapping for the sibling/child has been deleted, reset it
+
             if entry.sibling:
                 entry.sibling = mappings.get(entry.sibling, 0)
                 if not entry.sibling:
@@ -372,6 +420,7 @@ class MainPanel(wx.Panel):
                 text += f", Sibling: {address_to_index(entry.sibling)}"
             if child_address != entry.child:
                 text += f", Child: {address_to_index(entry.child)}"
+            text += f"{entry.getDisplayComment()}"
             self.entry_list.SetItemText(item, text)
 
             entries.append(entry)

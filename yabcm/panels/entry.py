@@ -78,10 +78,26 @@ class EntryPanel(wx.Panel):
                     'Automatic': 0x0,
                     'Manual': 0x1,
                     'Unknown (0x2)': 0x2,
+                    'Unknown (0x3)': 0x3,
                 }, False),
-                (None, None, False),
-                (None, None, False),
-                (None, None, False),
+                ('Options #2', {
+                    'Unknown (0x0)': 0x0,
+                    'Unknown (0x1)': 0x1,
+                    'Unknown (0x2)': 0x2,
+                    'Unknown (0x3)': 0x3,
+                }, False),
+                ('Options #3', {
+                    'Unknown (0x0)': 0x0,
+                    'Unknown (0x1)': 0x1,
+                    'Unknown (0x2)': 0x2,
+                    'Unknown (0x3)': 0x3,
+                }, False),
+                ('Options #4', {
+                    'Unknown (0x0)': 0x0,
+                    'Unknown (0x1)': 0x1,
+                    'Unknown (0x2)': 0x2,
+                    'Unknown (0x3)': 0x3,
+                }, False),
                 ('Action', {
                     'Continue until released': 0x0,
                     'Delay until released': 0x1,
@@ -106,14 +122,14 @@ class EntryPanel(wx.Panel):
         self.primary_activator_conditions = self.add_multiple_selection_entry(
             activator_panel, 'Primary Activator\nConditions', cols=3, orient=wx.VERTICAL, choices=[
                 ('Health', ["User's Health (One Use)", "Target's health < 25%",
-                            "When own attack hits", "User's Health"], True),
+                            "When Running BAC Entry Attack Hits", "User's Health"], True),
                 ('Collision/stamina', ["Active Projectile", 'Stamina > 0%', 'Not near map ceiling', 'Not near certain objects'], True),
                 ('Targeting', ["Opponent Knockback", None, 'Targeting Opponent'], True),
                 ('Touching', [None, None, 'Ground', 'Opponent'], True),
                 ('Counter and ki amount', ['Counter melee', 'Counter projectile', 'Ki < 100%', 'Ki > 0%'], True),
                 ('Primary activator', ['Transformed', 'Flash on/off unless targeting', None, 'Not Moving'], True),
-                ('Distance and transformation', [None, 'Close', 'Far', 'Base form'], True),
-                ('Position', ['Standing', 'Floating', 'Touching "ground"', 'When attack hits'], True)
+                ('Distance and transformation', ['Attack Pass on Opponent Guard', 'Close', 'Far', 'Base form'], True),
+                ('Position', ['Standing', 'Floating', 'Touching "ground"', 'When an attack hits'], True)
             ])
 
         # Activator State
@@ -135,7 +151,7 @@ class EntryPanel(wx.Panel):
             ('', {
                 'None': 0x0,
                 'Random BAC Entry': 0x1,
-                'Unknown (0x2)': 0x2,
+                'No Target Correction': 0x2,
                 '3 Instance Setup': 0x3,
                 'Unknown (0x4)': 0x4,
                 'Unknown (0x5)': 0x6,
@@ -282,3 +298,5 @@ class EntryPanel(wx.Panel):
         page = self.notebook.FindPage(self[entry].GetParent())
         self.notebook.ChangeSelection(page)
         self[entry].SetFocus()
+
+
